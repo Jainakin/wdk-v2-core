@@ -1,0 +1,19 @@
+{
+  "name": "@aspect/wdk-v2-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@aspect/wdk-v2-utils": "file:../wdk-v2-utils"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "esbuild": "^0.24.0"
+  }
+}
