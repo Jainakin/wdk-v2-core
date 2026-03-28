@@ -18,26 +18,20 @@ async function main() {
   console.log('Building wdk-bundle.js...');
 
   await build({
-    entryPoints: ['src/index.ts'],
+    entryPoints: ['src/bundle-entry.ts'],
     bundle: true,
     minify: false,  // Keep readable for debugging. Set to true for production.
     format: 'iife',
     globalName: '__wdk_exports',
     target: 'es2020',
     outfile,
-    // Resolve @aspect/wdk-v2-utils to the local package
+    // Resolve local packages
     alias: {
       '@aspect/wdk-v2-utils': '../wdk-v2-utils/src',
+      '@aspect/wdk-v2-core': './src',
     },
     // No external dependencies — everything is bundled
     external: [],
-    // Footer: assign exports to globalThis.wdk
-    footer: {
-      js: '// Wire up globalThis.wdk if not already done by the module\n' +
-          'if (typeof globalThis !== "undefined" && !globalThis.wdk && typeof __wdk_exports !== "undefined") {\n' +
-          '  globalThis.wdk = __wdk_exports;\n' +
-          '}\n',
-    },
     logLevel: 'info',
   });
 
