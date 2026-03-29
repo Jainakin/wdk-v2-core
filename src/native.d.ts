@@ -39,22 +39,30 @@ declare global {
     net: {
       fetch(url: string, options?: {
         method?: string;
-        headers?: Record<string, string>;
+        headers?: Record<string, string> | string;
         body?: string | Uint8Array;
         timeout?: number;
-      }): Promise<{ status: number; headers: Record<string, string>; body: Uint8Array }>;
+      }): Promise<{
+        status: number;
+        /** Raw JSON string of response headers, or null if not available */
+        headers: string | null;
+        /** Response body as Uint8Array, or null if empty */
+        body: Uint8Array | null;
+      }>;
     };
     storage: {
       secure: {
-        set(key: string, value: Uint8Array): Promise<void>;
-        get(key: string): Promise<Uint8Array | null>;
-        delete(key: string): Promise<void>;
-        has(key: string): Promise<boolean>;
+        /** Synchronous in C bridge — stores key material securely */
+        set(key: string, value: Uint8Array): void;
+        get(key: string): Uint8Array | null;
+        delete(key: string): void;
+        has(key: string): boolean;
       };
       regular: {
-        set(key: string, value: string): Promise<void>;
-        get(key: string): Promise<string | null>;
-        delete(key: string): Promise<void>;
+        /** Synchronous in C bridge — stores general data */
+        set(key: string, value: string): void;
+        get(key: string): string | null;
+        delete(key: string): void;
       };
     };
     platform: {
