@@ -168,6 +168,14 @@ const wdk = {
   getHistory(params: Record<string, unknown>) {
     return engine.dispatch('getHistory', params);
   },
+
+  quoteSend(params: Record<string, unknown>) {
+    return engine.dispatch('quoteSend', params);
+  },
+
+  getMaxSpendable(params: Record<string, unknown>) {
+    return engine.dispatch('getMaxSpendable', params);
+  },
 };
 
 // BIP-173 bit conversion helper (8-bit to 5-bit)

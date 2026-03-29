@@ -144,6 +144,29 @@ export class WDKEngine {
         return wallet.getTransactionHistory(address, limit);
       }
 
+      case 'quoteSend': {
+        const from = params.from as string ?? params.address as string;
+        if (!from) throw new StateError('Missing "from"/"address" parameter');
+        const to = params.to as string;
+        if (!to) throw new StateError('Missing "to" parameter');
+        const amount = params.amount as string;
+        if (!amount) throw new StateError('Missing "amount" parameter');
+        // quoteSendTransaction is BTC-specific — cast to any to call it
+        if (typeof (wallet as any).quoteSendTransaction === 'function') {
+          return (wallet as any).quoteSendTransaction({ from, to, amount });
+        }
+        throw new StateError('quoteSend not supported for this chain');
+      }
+
+      case 'getMaxSpendable': {
+        const address = params.address as string;
+        if (!address) throw new StateError('Missing "address" parameter');
+        if (typeof (wallet as any).getMaxSpendable === 'function') {
+          return (wallet as any).getMaxSpendable(address);
+        }
+        throw new StateError('getMaxSpendable not supported for this chain');
+      }
+
       default:
         throw new StateError(`Unknown action: ${action}`);
     }
