@@ -32,7 +32,7 @@ export class WDKEngine {
   }
 
   /** Unlock wallet with mnemonic — derives seed and master key */
-  unlockWallet(params: { mnemonic: string; passphrase?: string }): { seedHandle: number } {
+  async unlockWallet(params: { mnemonic: string; passphrase?: string }): Promise<{ seedHandle: number }> {
     if (this.state === 'destroyed') {
       throw new StateError('Wallet has been destroyed and cannot be reused');
     }
@@ -48,12 +48,14 @@ export class WDKEngine {
     this.state = 'unlocked';
     this.events.emit(WDKEvents.WALLET_UNLOCKED);
 
-    // Initialize registered chain modules with their network configs
+    // Initialize registered chain modules with their network configs.
+    // Await each so transport connections (e.g. Electrum TCP) complete
+    // before the engine enters 'ready' state.
     for (const wallet of this.registry.getAll()) {
       const networkKey = `${wallet.chainId}:${this.config.defaultNetwork}`;
       const networkConfig = this.config.networks[networkKey] || this.config.networks[wallet.chainId as string];
       if (networkConfig) {
-        wallet.initialize(networkConfig);
+        await wallet.initialize(networkConfig);
       }
     }
 
