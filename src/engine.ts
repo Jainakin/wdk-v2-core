@@ -106,7 +106,7 @@ export class WDKEngine {
       case 'getAddress': {
         const index = (params.index as number) ?? 0;
         const keyHandle = this.keys.deriveAndTrack(
-          `m/44'/${wallet.coinType}'/0'/0/${index}`
+          wallet.getDerivationPath(index)
         );
         return wallet.getAddress(keyHandle, index);
       }
@@ -118,11 +118,18 @@ export class WDKEngine {
       }
 
       case 'send': {
-        const tx = await wallet.buildTransaction(params as unknown as TxParams);
-        const keyHandle = this.keys.deriveAndTrack(
-          `m/44'/${wallet.coinType}'/0'/0/0`
+        // Pre-derive sender address at index 0 so buildTransaction has it in params.from
+        const sendIndex = (params.index as number) ?? 0;
+        const senderKeyHandle = this.keys.deriveAndTrack(
+          wallet.getDerivationPath(sendIndex)
         );
-        const signed = await wallet.signTransaction(tx, keyHandle);
+        const senderAddress = await wallet.getAddress(senderKeyHandle, sendIndex);
+        const txParams: TxParams = {
+          ...(params as unknown as TxParams),
+          from: senderAddress,
+        };
+        const tx = await wallet.buildTransaction(txParams);
+        const signed = await wallet.signTransaction(tx, senderKeyHandle);
         const txHash = await wallet.broadcastTransaction(signed);
         this.events.emit(WDKEvents.TX_SENT, { chain: chainId, txHash });
         return { txHash };
@@ -140,10 +147,25 @@ export class WDKEngine {
     }
   }
 
+  // ── Configuration ──
+
+  /**
+   * Merge a partial config into the engine's current config.
+   * Call before unlockWallet() so chain modules are initialized with
+   * the updated settings (e.g. switching to testnet).
+   */
+  configure(partial: Partial<WDKConfig>): void {
+    this.config = mergeConfig(this.config, partial);
+  }
+
   // ── Accessors ──
 
   getState(): WalletState {
     return this.state;
+  }
+
+  getConfig(): WDKConfig {
+    return this.config;
   }
 
   getKeyManager(): KeyManager {

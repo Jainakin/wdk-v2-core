@@ -11,7 +11,7 @@ import type {
 
 export abstract class BaseWallet {
   readonly chainId: ChainId;
-  readonly coinType: number;
+  protected coinType: number;
   readonly curve: CurveType;
   protected config: NetworkConfig | null = null;
 
@@ -24,6 +24,15 @@ export abstract class BaseWallet {
   /** Initialize with network config */
   async initialize(config: NetworkConfig): Promise<void> {
     this.config = config;
+  }
+
+  /**
+   * Return the BIP derivation path for a given address index.
+   * Override in chain modules that use a non-BIP-44 standard.
+   * e.g. Bitcoin SegWit uses BIP-84: m/84'/coinType'/0'/0/index
+   */
+  getDerivationPath(index: number): string {
+    return `m/44'/${this.coinType}'/0'/0/${index}`;
   }
 
   /** Get address for a derived key at account/index */
@@ -57,7 +66,7 @@ export abstract class BaseWallet {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
     });
-    const json = JSON.parse(response.body);
+    const json = JSON.parse(native.encoding.utf8Decode(response.body));
     if (json.error) throw new Error(json.error.message);
     return json.result;
   }

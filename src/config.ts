@@ -6,9 +6,47 @@ export interface WDKConfig {
   logLevel: 'debug' | 'info' | 'warn' | 'error';
 }
 
+/**
+ * Default per-chain network configs.
+ * Keyed by chainId (e.g. "btc") so the unlockWallet fallback lookup finds them.
+ * Callers can override by passing networks to the WDKEngine constructor or
+ * by calling mergeConfig() before construction.
+ */
 export const DEFAULT_CONFIG: WDKConfig = {
   defaultNetwork: 'mainnet',
-  networks: {},
+  networks: {
+    btc: {
+      chainId: 'btc',
+      networkId: 'mainnet',
+      rpcUrl: '',
+      isTestnet: false,
+      network: 'bitcoin',
+    },
+    evm: {
+      chainId: 'evm',
+      networkId: 'mainnet',
+      rpcUrl: '',
+      isTestnet: false,
+    },
+    ton: {
+      chainId: 'ton',
+      networkId: 'mainnet',
+      rpcUrl: '',
+      isTestnet: false,
+    },
+    tron: {
+      chainId: 'tron',
+      networkId: 'mainnet',
+      rpcUrl: '',
+      isTestnet: false,
+    },
+    solana: {
+      chainId: 'solana',
+      networkId: 'mainnet',
+      rpcUrl: '',
+      isTestnet: false,
+    },
+  },
   logLevel: 'info',
 };
 

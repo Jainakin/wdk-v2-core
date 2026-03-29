@@ -19,6 +19,8 @@ declare const native: {
     getPublicKey(keyHandle: number, curve: string): Uint8Array;
     signSecp256k1(keyHandle: number, hash: Uint8Array): Uint8Array;
     signEd25519(keyHandle: number, message: Uint8Array): Uint8Array;
+    aesGcmEncrypt(key: Uint8Array, plaintext: Uint8Array, iv: Uint8Array): Uint8Array;
+    aesGcmDecrypt(key: Uint8Array, ciphertext: Uint8Array, iv: Uint8Array): Uint8Array;
     sha256(data: Uint8Array): Uint8Array;
     keccak256(data: Uint8Array): Uint8Array;
     ripemd160(data: Uint8Array): Uint8Array;
@@ -33,9 +35,11 @@ declare const native: {
     base58Decode(str: string): Uint8Array;
     base58CheckEncode(data: Uint8Array): string;
     base58CheckDecode(str: string): Uint8Array;
+    utf8Encode(str: string): Uint8Array;
+    utf8Decode(bytes: Uint8Array): string;
   };
   net: {
-    fetch(url: string, options?: any): Promise<{ status: number; headers: any; body: string }>;
+    fetch(url: string, options?: any): Promise<{ status: number; headers: any; body: Uint8Array }>;
   };
   storage: {
     secure: { set(k: string, v: Uint8Array): void; get(k: string): Uint8Array | null; delete(k: string): void; has(k: string): boolean };
@@ -80,15 +84,19 @@ const wdk = {
   },
 
   // ── BTC-specific convenience functions ──
-  getBtcAddress(params: { mnemonic: string; index?: number }) {
-    // Unlock if needed
-    if (engine.getState() !== 'ready') {
-      engine.unlockWallet({ mnemonic: params.mnemonic });
-    }
-
+  /**
+   * Derive a BTC SegWit address at the given index.
+   * Requires the wallet to already be unlocked (state === 'ready').
+   * Throws StateError if called before unlockWallet().
+   */
+  getBtcAddress(params: { index?: number }) {
+    // Wallet must already be unlocked — do NOT auto-unlock here.
     const index = params.index ?? 0;
+    // Use dynamic coinType: 0 for mainnet, 1 for testnet/regtest
+    const btcConfig = engine.getConfig().networks['btc'];
+    const coinType = btcConfig?.isTestnet ? 1 : 0;
     const keyHandle = engine.getKeyManager().deriveAndTrack(
-      `m/84'/0'/0'/0/${index}`
+      `m/84'/${coinType}'/0'/0/${index}`
     );
 
     // Get compressed public key
@@ -107,8 +115,41 @@ const wdk = {
     witnessProgram[0] = 0; // witness version 0
     witnessProgram.set(fiveBit, 1);
 
-    const address = native.encoding.bech32Encode('bc', witnessProgram);
+    const hrp = btcConfig?.isTestnet ? 'tb' : 'bc';
+    const address = native.encoding.bech32Encode(hrp, witnessProgram);
     return { address };
+  },
+
+  // ── Configuration ──
+  /**
+   * Update network configuration before unlockWallet().
+   * Pass { isTestnet: true } to switch a chain to testnet.
+   * Pass { chain: 'btc', isTestnet: true } to target a specific chain
+   * (defaults to 'btc' if chain is omitted).
+   */
+  configure(params: {
+    isTestnet?: boolean;
+    chain?: string;
+    network?: string;
+    btcClient?: { type: string; url?: string };
+  }) {
+    const chain = (params.chain ?? 'btc') as import('@aspect/wdk-v2-utils').ChainId;
+    const isTestnet = params.isTestnet ?? (params.network === 'testnet' || params.network === 'regtest');
+    const network = params.network ?? (isTestnet ? 'testnet' : 'bitcoin');
+
+    engine.configure({
+      networks: {
+        [chain]: {
+          chainId: chain,
+          networkId: isTestnet ? 'testnet' : 'mainnet',
+          rpcUrl: '',
+          isTestnet,
+          network,
+          btcClient: params.btcClient,
+        },
+      },
+    });
+    return {};
   },
 
   // ── Generic chain dispatch ──

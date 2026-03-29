@@ -16,8 +16,13 @@ export class KeyManager {
     }
   }
 
-  /** Set the master seed handle */
+  /** Set the master seed handle. Releases the previous handle if one is already tracked. */
   setSeedHandle(handle: number): void {
+    if (this.seedHandle !== null) {
+      // Release the old handle before overwriting — prevents leak on double-unlock
+      native.crypto.releaseKey(this.seedHandle);
+      this.handles.delete(this.seedHandle);
+    }
     this.seedHandle = handle;
     this.handles.add(handle);
   }

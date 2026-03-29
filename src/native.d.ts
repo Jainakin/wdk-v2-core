@@ -14,6 +14,10 @@ declare global {
       blake2b(data: Uint8Array, outLen: number): Uint8Array;
       hmacSha256(key: Uint8Array, data: Uint8Array): Uint8Array;
       hmacSha512(key: Uint8Array, data: Uint8Array): Uint8Array;
+      pbkdf2(password: Uint8Array, salt: Uint8Array, iterations: number, keyLen: number, digest: string): Uint8Array;
+      hkdf(ikm: Uint8Array, salt: Uint8Array, info: Uint8Array, keyLen: number, digest: string): Uint8Array;
+      aesGcmEncrypt(key: Uint8Array, plaintext: Uint8Array, iv: Uint8Array): Uint8Array;
+      aesGcmDecrypt(key: Uint8Array, ciphertext: Uint8Array, iv: Uint8Array): Uint8Array;
       releaseKey(handle: number): void;
     };
     encoding: {
@@ -29,6 +33,8 @@ declare global {
       bech32mDecode(str: string): { hrp: string; data: Uint8Array };
       base64Encode(data: Uint8Array): string;
       base64Decode(str: string): Uint8Array;
+      utf8Encode(str: string): Uint8Array;
+      utf8Decode(bytes: Uint8Array): string;
     };
     net: {
       fetch(url: string, options?: {
@@ -36,7 +42,7 @@ declare global {
         headers?: Record<string, string>;
         body?: string | Uint8Array;
         timeout?: number;
-      }): Promise<{ status: number; headers: Record<string, string>; body: string }>;
+      }): Promise<{ status: number; headers: Record<string, string>; body: Uint8Array }>;
     };
     storage: {
       secure: {
