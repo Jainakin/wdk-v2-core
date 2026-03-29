@@ -1,6 +1,8 @@
 export class KeyManager {
   private handles: Set<number> = new Set();
   private seedHandle: number | null = null;
+  /** Cache: derivation path → key handle (avoids re-deriving the same key) */
+  private derivedCache: Map<string, number> = new Map();
 
   /** Track a key handle (returned by native.crypto.deriveKey etc.) */
   track(handle: number): number {
@@ -13,6 +15,13 @@ export class KeyManager {
     if (this.handles.has(handle)) {
       native.crypto.releaseKey(handle);
       this.handles.delete(handle);
+      // Also remove from derivation cache if present
+      for (const [path, h] of this.derivedCache) {
+        if (h === handle) {
+          this.derivedCache.delete(path);
+          break;
+        }
+      }
     }
   }
 
@@ -35,10 +44,20 @@ export class KeyManager {
     return this.seedHandle;
   }
 
-  /** Derive a key from seed at a BIP-44 path and track it */
+  /**
+   * Derive a key from seed at a BIP path and cache it.
+   * Returns the cached handle if the same path was already derived.
+   * This prevents handle leaks from repeated getAddress/send calls.
+   */
   deriveAndTrack(path: string): number {
+    const cached = this.derivedCache.get(path);
+    if (cached !== undefined && this.handles.has(cached)) {
+      return cached;
+    }
     const handle = native.crypto.deriveKey(this.getSeedHandle(), path);
-    return this.track(handle);
+    this.handles.add(handle);
+    this.derivedCache.set(path, handle);
+    return handle;
   }
 
   /** Release ALL tracked handles including seed. Called on lock/destroy. */
@@ -47,6 +66,7 @@ export class KeyManager {
       native.crypto.releaseKey(handle);
     }
     this.handles.clear();
+    this.derivedCache.clear();
     this.seedHandle = null;
   }
 
