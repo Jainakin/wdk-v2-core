@@ -31,12 +31,12 @@ export abstract class BaseWallet {
    * Override in chain modules that use a non-BIP-44 standard.
    * e.g. Bitcoin SegWit uses BIP-84: m/84'/coinType'/0'/0/index
    */
-  getDerivationPath(index: number): string {
+  getDerivationPath(index: number, _addressType?: string): string {
     return `m/44'/${this.coinType}'/0'/0/${index}`;
   }
 
   /** Get address for a derived key at account/index */
-  abstract getAddress(keyHandle: KeyHandle, index: number): Promise<string>;
+  abstract getAddress(keyHandle: KeyHandle, index: number, addressType?: string): Promise<string>;
 
   /** Get balance for an address */
   abstract getBalance(address: string): Promise<string>;

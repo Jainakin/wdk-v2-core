@@ -107,10 +107,11 @@ export class WDKEngine {
     switch (action) {
       case 'getAddress': {
         const index = (params.index as number) ?? 0;
+        const addressType = params.addressType as string | undefined;
         const keyHandle = this.keys.deriveAndTrack(
-          wallet.getDerivationPath(index)
+          wallet.getDerivationPath(index, addressType)
         );
-        return wallet.getAddress(keyHandle, index);
+        return wallet.getAddress(keyHandle, index, addressType);
       }
 
       case 'getBalance': {
