@@ -90,34 +90,9 @@ const wdk = {
    * Throws StateError if called before unlockWallet().
    */
   getBtcAddress(params: { index?: number }) {
-    // Wallet must already be unlocked — do NOT auto-unlock here.
-    const index = params.index ?? 0;
-    // Use dynamic coinType: 0 for mainnet, 1 for testnet/regtest
-    const btcConfig = engine.getConfig().networks['btc'];
-    const coinType = btcConfig?.isTestnet ? 1 : 0;
-    const keyHandle = engine.getKeyManager().deriveAndTrack(
-      `m/84'/${coinType}'/0'/0/${index}`
-    );
-
-    // Get compressed public key
-    const pubkey = native.crypto.getPublicKey(keyHandle, 'secp256k1');
-
-    // Hash160: SHA256 then RIPEMD160
-    const sha = native.crypto.sha256(pubkey);
-    const hash160 = native.crypto.ripemd160(sha);
-
-    // Convert to 5-bit groups for bech32
-    const fiveBit = convertBits(hash160, 8, 5, true);
-    if (!fiveBit) return { error: 'bit conversion failed' };
-
-    // Witness version 0 + 5-bit program
-    const witnessProgram = new Uint8Array(1 + fiveBit.length);
-    witnessProgram[0] = 0; // witness version 0
-    witnessProgram.set(fiveBit, 1);
-
-    const hrp = btcConfig?.isTestnet ? 'tb' : 'bc';
-    const address = native.encoding.bech32Encode(hrp, witnessProgram);
-    return { address };
+    // Delegate to the generic getAddress dispatch which handles
+    // mainnet/testnet/regtest correctly via BitcoinWallet.getAddress()
+    return engine.dispatch('getAddress', { chain: 'btc', index: params.index ?? 0 });
   },
 
   // ── Configuration ──
@@ -181,35 +156,6 @@ const wdk = {
     return engine.dispatch('getReceipt', params);
   },
 };
-
-// BIP-173 bit conversion helper (8-bit to 5-bit)
-function convertBits(data: Uint8Array, fromBits: number, toBits: number, pad: boolean): Uint8Array | null {
-  let acc = 0;
-  let bits = 0;
-  const ret: number[] = [];
-  const maxv = (1 << toBits) - 1;
-
-  for (let i = 0; i < data.length; i++) {
-    const value = data[i];
-    if (value < 0 || (value >> fromBits) !== 0) return null;
-    acc = (acc << fromBits) | value;
-    bits += fromBits;
-    while (bits >= toBits) {
-      bits -= toBits;
-      ret.push((acc >> bits) & maxv);
-    }
-  }
-
-  if (pad) {
-    if (bits > 0) {
-      ret.push((acc << (toBits - bits)) & maxv);
-    }
-  } else if (bits >= fromBits || ((acc << (toBits - bits)) & maxv) !== 0) {
-    return null;
-  }
-
-  return new Uint8Array(ret);
-}
 
 // Register on globalThis
 (globalThis as any).wdk = wdk;

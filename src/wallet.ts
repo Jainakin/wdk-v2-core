@@ -98,7 +98,8 @@ export abstract class BaseWallet {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
     });
-    const json = JSON.parse(native.encoding.utf8Decode(response.body));
+    const bodyText = response.body ? native.encoding.utf8Decode(response.body) : '{}';
+    const json = JSON.parse(bodyText);
     if (json.error) throw new Error(json.error.message);
     return json.result;
   }
