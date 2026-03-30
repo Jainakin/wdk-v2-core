@@ -121,12 +121,13 @@ export class WDKEngine {
       }
 
       case 'send': {
-        // Pre-derive sender address at index 0 so buildTransaction has it in params.from
+        // Pre-derive sender address — supports both BIP84 (default) and BIP44 (legacy)
         const sendIndex = (params.index as number) ?? 0;
+        const sendAddressType = params.addressType as string | undefined;
         const senderKeyHandle = this.keys.deriveAndTrack(
-          wallet.getDerivationPath(sendIndex)
+          wallet.getDerivationPath(sendIndex, sendAddressType)
         );
-        const senderAddress = await wallet.getAddress(senderKeyHandle, sendIndex);
+        const senderAddress = await wallet.getAddress(senderKeyHandle, sendIndex, sendAddressType);
         const txParams: TxParams = {
           ...(params as unknown as TxParams),
           from: senderAddress,
@@ -186,8 +187,9 @@ export class WDKEngine {
         const message = params.message as string;
         if (!message && message !== '') throw new StateError('Missing "message" parameter');
         const signIndex = (params.index as number) ?? 0;
+        const signAddrType = params.addressType as string | undefined;
         const msgKeyHandle = this.keys.deriveAndTrack(
-          wallet.getDerivationPath(signIndex)
+          wallet.getDerivationPath(signIndex, signAddrType)
         );
         return wallet.signMessage(msgKeyHandle, message);
       }
