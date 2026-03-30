@@ -160,6 +160,13 @@ export class WDKEngine {
         return wallet.getMaxSpendable(address);
       }
 
+      case 'getFeeRates': {
+        if (typeof (wallet as any).getFeeRates === 'function') {
+          return (wallet as any).getFeeRates();
+        }
+        throw new StateError('getFeeRates not supported for this chain');
+      }
+
       case 'getReceipt': {
         const txHash = params.txHash as string;
         if (!txHash) throw new StateError('Missing "txHash" parameter');

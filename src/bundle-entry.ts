@@ -155,6 +155,10 @@ const wdk = {
   getReceipt(params: Record<string, unknown>) {
     return engine.dispatch('getReceipt', params);
   },
+
+  getFeeRates(params: Record<string, unknown>) {
+    return engine.dispatch('getFeeRates', params);
+  },
 };
 
 // Register on globalThis
