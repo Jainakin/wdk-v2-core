@@ -4,7 +4,7 @@ import { KeyManager } from './keys.js';
 import { EventEmitter, WDKEvents } from './events.js';
 import { ChainRegistry } from './registry.js';
 import { type WDKConfig, DEFAULT_CONFIG, mergeConfig } from './config.js';
-import { BaseWallet } from './wallet.js';
+import { WalletManager } from './wallet-manager.js';
 
 export class WDKEngine {
   private state: WalletState = 'locked';
@@ -84,7 +84,8 @@ export class WDKEngine {
 
   // ── Chain Module Registration ──
 
-  registerChain(module: BaseWallet): void {
+  registerChain(module: WalletManager): void {
+    module.setKeyManager(this.keys);
     this.registry.register(module);
     this.events.emit(WDKEvents.CHAIN_REGISTERED, { chain: module.chainId });
   }
@@ -102,80 +103,74 @@ export class WDKEngine {
       throw new StateError('Missing "chain" parameter');
     }
 
-    const wallet = this.registry.get(chainId);
+    const manager = this.registry.getManager(chainId);
 
     switch (action) {
+      // ── Account lifecycle ──────────────────────────────────────────────
+      case 'getAccount': {
+        const index = (params.index as number) ?? 0;
+        const addressType = params.addressType as string | undefined;
+        const account = manager.getAccount(index, addressType);
+        return account.toInfo();
+      }
+
+      case 'getAccountByPath': {
+        const path = params.path as string;
+        if (!path) throw new StateError('Missing "path" parameter');
+        const account = manager.getAccountByPath(path);
+        return account.toInfo();
+      }
+
+      case 'toReadOnlyAccount': {
+        const index = (params.index as number) ?? 0;
+        const addressType = params.addressType as string | undefined;
+        const account = manager.getAccount(index, addressType);
+        const readOnly = account.toReadOnly();
+        return readOnly.toInfo();
+      }
+
+      case 'disposeAccount': {
+        const index = (params.index as number) ?? 0;
+        const addressType = params.addressType as string | undefined;
+        manager.disposeAccount(index, addressType);
+        return {};
+      }
+
+      // ── Address ────────────────────────────────────────────────────────
       case 'getAddress': {
         const index = (params.index as number) ?? 0;
         const addressType = params.addressType as string | undefined;
-        const keyHandle = this.keys.deriveAndTrack(
-          wallet.getDerivationPath(index, addressType)
-        );
-        return wallet.getAddress(keyHandle, index, addressType);
+        const account = manager.getAccount(index, addressType);
+        return account.address;
       }
 
+      // ── Balance + read-only ────────────────────────────────────────────
       case 'getBalance': {
-        const address = params.address as string;
-        if (!address) throw new StateError('Missing "address" parameter');
-        return wallet.getBalance(address);
-      }
-
-      case 'send': {
-        // Pre-derive sender address — supports both BIP84 (default) and BIP44 (legacy)
-        const sendIndex = (params.index as number) ?? 0;
-        const sendAddressType = params.addressType as string | undefined;
-        const senderKeyHandle = this.keys.deriveAndTrack(
-          wallet.getDerivationPath(sendIndex, sendAddressType)
-        );
-        const senderAddress = await wallet.getAddress(senderKeyHandle, sendIndex, sendAddressType);
-        const txParams: TxParams = {
-          ...(params as unknown as TxParams),
-          from: senderAddress,
-        };
-        const tx = await wallet.buildTransaction(txParams);
-        const signed = await wallet.signTransaction(tx, senderKeyHandle);
-        const txHash = await wallet.broadcastTransaction(signed);
-        this.events.emit(WDKEvents.TX_SENT, { chain: chainId, txHash });
-        return { txHash };
+        const index = (params.index as number) ?? 0;
+        const addressType = params.addressType as string | undefined;
+        // If address is provided, use it to find the right account
+        // Otherwise derive from index
+        const account = params.address
+          ? manager.getReadOnlyAccount(params.address as string, index)
+          : manager.getAccount(index, addressType);
+        return account.getBalance();
       }
 
       case 'getHistory': {
-        const address = params.address as string;
-        if (!address) throw new StateError('Missing "address" parameter');
+        const index = (params.index as number) ?? 0;
+        const account = params.address
+          ? manager.getReadOnlyAccount(params.address as string, index)
+          : manager.getAccount(index);
         const limit = params.limit as number | undefined;
-        return wallet.getTransactionHistory(address, limit);
-      }
-
-      case 'quoteSend': {
-        const from = params.from as string ?? params.address as string;
-        if (!from) throw new StateError('Missing "from"/"address" parameter');
-        const to = params.to as string;
-        if (!to) throw new StateError('Missing "to" parameter');
-        const amount = params.amount as string;
-        if (!amount) throw new StateError('Missing "amount" parameter');
-        return wallet.quoteSendTransaction({ from, to, amount });
-      }
-
-      case 'getMaxSpendable': {
-        const address = params.address as string;
-        if (!address) throw new StateError('Missing "address" parameter');
-        return wallet.getMaxSpendable(address);
-      }
-
-      case 'getFeeRates': {
-        return wallet.getFeeRates();
-      }
-
-      case 'getReceipt': {
-        const txHash = params.txHash as string;
-        if (!txHash) throw new StateError('Missing "txHash" parameter');
-        return wallet.getTransactionReceipt(txHash);
+        return account.getTransactionHistory(limit);
       }
 
       case 'getTransfers': {
-        const address = params.address as string;
-        if (!address) throw new StateError('Missing "address" parameter');
-        return wallet.getTransfers(address, {
+        const index = (params.index as number) ?? 0;
+        const account = params.address
+          ? manager.getReadOnlyAccount(params.address as string, index)
+          : manager.getAccount(index);
+        return account.getTransfers({
           direction: params.direction as string | undefined,
           limit: params.limit as number | undefined,
           afterTxId: params.afterTxId as string | undefined,
@@ -183,15 +178,63 @@ export class WDKEngine {
         });
       }
 
+      case 'quoteSend': {
+        const index = (params.index as number) ?? 0;
+        const account = params.address
+          ? manager.getReadOnlyAccount(params.address as string, index)
+          : manager.getAccount(index);
+        const to = params.to as string;
+        if (!to) throw new StateError('Missing "to" parameter');
+        const amount = params.amount as string;
+        if (!amount) throw new StateError('Missing "amount" parameter');
+        return account.quoteSendTransaction({ to, amount });
+      }
+
+      case 'getMaxSpendable': {
+        const index = (params.index as number) ?? 0;
+        const account = params.address
+          ? manager.getReadOnlyAccount(params.address as string, index)
+          : manager.getAccount(index);
+        return account.getMaxSpendable();
+      }
+
+      case 'getFeeRates': {
+        // Fee rates are account-independent — use any account or manager-level
+        const account = manager.getAccount(0);
+        return account.getFeeRates();
+      }
+
+      case 'getReceipt': {
+        const txHash = params.txHash as string;
+        if (!txHash) throw new StateError('Missing "txHash" parameter');
+        const account = manager.getAccount(0);
+        return account.getTransactionReceipt(txHash);
+      }
+
+      // ── Signing ────────────────────────────────────────────────────────
+      case 'send': {
+        const sendIndex = (params.index as number) ?? 0;
+        const sendAddressType = params.addressType as string | undefined;
+        const account = manager.getAccount(sendIndex, sendAddressType);
+        const to = params.to as string;
+        if (!to) throw new StateError('Missing "to" parameter');
+        const amount = params.amount as string;
+        if (!amount) throw new StateError('Missing "amount" parameter');
+        const result = await account.sendTransaction({
+          to, amount,
+          feeRate: params.feeRate as number | undefined,
+        });
+        this.events.emit(WDKEvents.TX_SENT, { chain: chainId, txHash: result.txHash });
+        return result;
+      }
+
       case 'signMessage': {
         const message = params.message as string;
         if (!message && message !== '') throw new StateError('Missing "message" parameter');
         const signIndex = (params.index as number) ?? 0;
         const signAddrType = params.addressType as string | undefined;
-        const msgKeyHandle = this.keys.deriveAndTrack(
-          wallet.getDerivationPath(signIndex, signAddrType)
-        );
-        return wallet.signMessage(msgKeyHandle, message);
+        const account = manager.getAccount(signIndex, signAddrType);
+        return account.sign(message);
       }
 
       case 'verifyMessage': {
@@ -201,7 +244,8 @@ export class WDKEngine {
         if (!message && message !== '') throw new StateError('Missing "message" parameter');
         if (!signature) throw new StateError('Missing "signature" parameter');
         if (!address) throw new StateError('Missing "address" parameter');
-        return wallet.verifyMessage(message, signature, address);
+        const account = manager.getReadOnlyAccount(address);
+        return account.verifyMessage(message, signature);
       }
 
       default:
