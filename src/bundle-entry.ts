@@ -159,6 +159,14 @@ const wdk = {
   getFeeRates(params: Record<string, unknown>) {
     return engine.dispatch('getFeeRates', params);
   },
+
+  signMessage(params: Record<string, unknown>) {
+    return engine.dispatch('signMessage', params);
+  },
+
+  verifyMessage(params: Record<string, unknown>) {
+    return engine.dispatch('verifyMessage', params);
+  },
 };
 
 // Register on globalThis

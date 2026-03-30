@@ -173,6 +173,32 @@ export class WDKEngine {
         return wallet.getTransactionReceipt(txHash);
       }
 
+      case 'signMessage': {
+        const message = params.message as string;
+        if (!message && message !== '') throw new StateError('Missing "message" parameter');
+        const signIndex = (params.index as number) ?? 0;
+        const msgKeyHandle = this.keys.deriveAndTrack(
+          wallet.getDerivationPath(signIndex)
+        );
+        if (typeof (wallet as any).signMessage === 'function') {
+          return (wallet as any).signMessage(message, msgKeyHandle);
+        }
+        throw new StateError('signMessage not supported for this chain');
+      }
+
+      case 'verifyMessage': {
+        const message = params.message as string;
+        const signature = params.signature as string;
+        const address = params.address as string;
+        if (!message && message !== '') throw new StateError('Missing "message" parameter');
+        if (!signature) throw new StateError('Missing "signature" parameter');
+        if (!address) throw new StateError('Missing "address" parameter');
+        if (typeof (wallet as any).verifyMessage === 'function') {
+          return (wallet as any).verifyMessage(message, signature, address);
+        }
+        throw new StateError('verifyMessage not supported for this chain');
+      }
+
       default:
         throw new StateError(`Unknown action: ${action}`);
     }
