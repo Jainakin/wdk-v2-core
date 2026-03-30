@@ -9,7 +9,7 @@
  */
 
 import { WDKEngine } from './engine.js';
-import { BitcoinWallet } from '../../wdk-v2-wallet-btc/src/index.js';
+import { BtcWalletManager } from '../../wdk-v2-wallet-btc/src/index.js';
 
 declare const native: {
   crypto: {
@@ -57,8 +57,8 @@ declare const native: {
 const engine = new WDKEngine();
 
 // Register BTC chain module
-const btcWallet = new BitcoinWallet();
-engine.registerChain(btcWallet);
+const btcManager = new BtcWalletManager();
+engine.registerChain(btcManager);
 
 // Build the public API
 const wdk = {
@@ -90,8 +90,7 @@ const wdk = {
    * Throws StateError if called before unlockWallet().
    */
   getBtcAddress(params: { index?: number }) {
-    // Delegate to the generic getAddress dispatch which handles
-    // mainnet/testnet/regtest correctly via BitcoinWallet.getAddress()
+    // Delegates to BtcWalletManager.getAccount(index).address via dispatch
     return engine.dispatch('getAddress', { chain: 'btc', index: params.index ?? 0 });
   },
 
@@ -170,6 +169,23 @@ const wdk = {
 
   verifyMessage(params: Record<string, unknown>) {
     return engine.dispatch('verifyMessage', params);
+  },
+
+  // ── Account lifecycle (production parity) ──
+  getAccount(params: Record<string, unknown>) {
+    return engine.dispatch('getAccount', params);
+  },
+
+  getAccountByPath(params: Record<string, unknown>) {
+    return engine.dispatch('getAccountByPath', params);
+  },
+
+  toReadOnlyAccount(params: Record<string, unknown>) {
+    return engine.dispatch('toReadOnlyAccount', params);
+  },
+
+  disposeAccount(params: Record<string, unknown>) {
+    return engine.dispatch('disposeAccount', params);
   },
 };
 
