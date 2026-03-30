@@ -5,6 +5,12 @@ declare global {
       mnemonicToSeed(mnemonic: string, passphrase?: string): number;
       deriveKey(seedHandle: number, path: string): number;
       signSecp256k1(keyHandle: number, hash: Uint8Array): Uint8Array;
+      /** Sign with recovery ID — returns 65 bytes (64 compact sig + 1 recid) */
+      signRecoverableSecp256k1(keyHandle: number, hash: Uint8Array): Uint8Array;
+      /** Verify a compact secp256k1 signature against a public key */
+      verifySecp256k1(publicKey: Uint8Array, hash: Uint8Array, signature: Uint8Array): boolean;
+      /** Recover compressed public key (33 bytes) from hash + 65-byte recoverable signature */
+      recoverSecp256k1(hash: Uint8Array, signature: Uint8Array): Uint8Array;
       signEd25519(keyHandle: number, message: Uint8Array): Uint8Array;
       getPublicKey(keyHandle: number, curve: 'secp256k1' | 'ed25519'): Uint8Array;
       sha256(data: Uint8Array): Uint8Array;
