@@ -55,6 +55,16 @@ declare global {
         /** Response body as Uint8Array, or null if empty */
         body: Uint8Array | null;
       }>;
+      /** Connect to a WebSocket URL. Returns an integer handle. */
+      wsConnect(url: string): number;
+      /** Send a text message on an open WebSocket. */
+      wsSend(handle: number, data: string): void;
+      /** Register a callback for incoming messages. */
+      wsOnMessage(handle: number, callback: (data: string) => void): void;
+      /** Register a callback for connection close/error. */
+      wsOnClose(handle: number, callback: (error?: string) => void): void;
+      /** Close a WebSocket connection. */
+      wsClose(handle: number): void;
     };
     storage: {
       secure: {
