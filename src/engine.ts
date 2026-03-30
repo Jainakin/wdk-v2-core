@@ -162,10 +162,7 @@ export class WDKEngine {
       }
 
       case 'getFeeRates': {
-        if (typeof (wallet as any).getFeeRates === 'function') {
-          return (wallet as any).getFeeRates();
-        }
-        throw new StateError('getFeeRates not supported for this chain');
+        return wallet.getFeeRates();
       }
 
       case 'getReceipt': {
@@ -177,15 +174,12 @@ export class WDKEngine {
       case 'getTransfers': {
         const address = params.address as string;
         if (!address) throw new StateError('Missing "address" parameter');
-        if (typeof (wallet as any).getTransfers === 'function') {
-          return (wallet as any).getTransfers(address, {
-            direction: params.direction as string | undefined,
-            limit: params.limit as number | undefined,
-            afterTxId: params.afterTxId as string | undefined,
-            page: params.page as number | undefined,
-          });
-        }
-        throw new StateError('getTransfers not supported for this chain');
+        return wallet.getTransfers(address, {
+          direction: params.direction as string | undefined,
+          limit: params.limit as number | undefined,
+          afterTxId: params.afterTxId as string | undefined,
+          page: params.page as number | undefined,
+        });
       }
 
       case 'signMessage': {
@@ -195,10 +189,7 @@ export class WDKEngine {
         const msgKeyHandle = this.keys.deriveAndTrack(
           wallet.getDerivationPath(signIndex)
         );
-        if (typeof (wallet as any).signMessage === 'function') {
-          return (wallet as any).signMessage(message, msgKeyHandle);
-        }
-        throw new StateError('signMessage not supported for this chain');
+        return wallet.signMessage(msgKeyHandle, message);
       }
 
       case 'verifyMessage': {
@@ -208,10 +199,7 @@ export class WDKEngine {
         if (!message && message !== '') throw new StateError('Missing "message" parameter');
         if (!signature) throw new StateError('Missing "signature" parameter');
         if (!address) throw new StateError('Missing "address" parameter');
-        if (typeof (wallet as any).verifyMessage === 'function') {
-          return (wallet as any).verifyMessage(message, signature, address);
-        }
-        throw new StateError('verifyMessage not supported for this chain');
+        return wallet.verifyMessage(message, signature, address);
       }
 
       default:

@@ -85,6 +85,28 @@ export abstract class BaseWallet {
     utxoCount: number;
   }>;
 
+  // ── Optional capabilities (override in chain modules that support them) ──
+
+  /** Get fee rate estimates — override in chains that support it */
+  async getFeeRates(): Promise<Record<string, number>> {
+    throw new Error(`getFeeRates not supported for chain ${this.chainId}`);
+  }
+
+  /** Get paginated transfers with direction filter — override in chains that support it */
+  async getTransfers(_address: string, _query?: Record<string, unknown>): Promise<unknown> {
+    throw new Error(`getTransfers not supported for chain ${this.chainId}`);
+  }
+
+  /** Sign a message — override in chains that support message signing */
+  async signMessage(_keyHandle: KeyHandle, _message: string): Promise<string> {
+    throw new Error(`signMessage not supported for chain ${this.chainId}`);
+  }
+
+  /** Verify a signed message — override in chains that support it */
+  async verifyMessage(_message: string, _signature: string, _address: string): Promise<boolean> {
+    throw new Error(`verifyMessage not supported for chain ${this.chainId}`);
+  }
+
   /** Cleanup resources */
   destroy(): void {
     this.config = null;
