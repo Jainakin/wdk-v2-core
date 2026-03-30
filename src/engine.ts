@@ -173,6 +173,20 @@ export class WDKEngine {
         return wallet.getTransactionReceipt(txHash);
       }
 
+      case 'getTransfers': {
+        const address = params.address as string;
+        if (!address) throw new StateError('Missing "address" parameter');
+        if (typeof (wallet as any).getTransfers === 'function') {
+          return (wallet as any).getTransfers(address, {
+            direction: params.direction as string | undefined,
+            limit: params.limit as number | undefined,
+            afterTxId: params.afterTxId as string | undefined,
+            page: params.page as number | undefined,
+          });
+        }
+        throw new StateError('getTransfers not supported for this chain');
+      }
+
       case 'signMessage': {
         const message = params.message as string;
         if (!message && message !== '') throw new StateError('Missing "message" parameter');

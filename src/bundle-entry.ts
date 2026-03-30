@@ -160,6 +160,10 @@ const wdk = {
     return engine.dispatch('getFeeRates', params);
   },
 
+  getTransfers(params: Record<string, unknown>) {
+    return engine.dispatch('getTransfers', params);
+  },
+
   signMessage(params: Record<string, unknown>) {
     return engine.dispatch('signMessage', params);
   },
