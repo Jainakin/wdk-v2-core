@@ -9,7 +9,7 @@
  */
 
 import { WDKEngine } from './engine.js';
-import { BtcWalletManager } from '../../wdk-v2-wallet-btc/src/index.js';
+import { BtcWalletManager, buildAndSignPsbt as _buildAndSignPsbt } from '../../wdk-v2-wallet-btc/src/index.js';
 
 declare const native: {
   crypto: {
@@ -186,6 +186,11 @@ const wdk = {
 
   disposeAccount(params: Record<string, unknown>) {
     return engine.dispatch('disposeAccount', params);
+  },
+
+  // ── Test-only: direct PSBT access for regtest verification ──
+  __buildAndSignPsbt(inputs: any[], outputs: any[], keyHandles: number[]) {
+    return _buildAndSignPsbt(inputs, outputs, keyHandles);
   },
 };
 
