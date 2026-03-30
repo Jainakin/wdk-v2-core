@@ -9,6 +9,12 @@ import type {
   NetworkConfig,
 } from '@aspect/wdk-v2-utils';
 
+/**
+ * @deprecated Use WalletManager + WalletAccount pattern instead.
+ * BaseWallet is preserved for backward compatibility only.
+ * New chain modules should extend WalletManager and create
+ * WalletAccount/WalletAccountReadOnly instances.
+ */
 export abstract class BaseWallet {
   readonly chainId: ChainId;
   protected coinType: number;
