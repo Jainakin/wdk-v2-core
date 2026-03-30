@@ -115,6 +115,17 @@ export abstract class WalletManager {
     index: number,
   ): WalletAccountReadOnly;
 
+  /** Clear all cached accounts (e.g. when network changes) */
+  protected clearAccounts(): void {
+    for (const [, account] of this.accounts) {
+      account.dispose();
+      if (this.keyManager) {
+        this.keyManager.release(account.keyHandle);
+      }
+    }
+    this.accounts.clear();
+  }
+
   // ── Disposal ───────────────────────────────────────────────────────────
 
   /** Dispose a single account by index */
