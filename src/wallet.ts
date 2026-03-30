@@ -53,6 +53,38 @@ export abstract class BaseWallet {
   /** Get transaction history */
   abstract getTransactionHistory(address: string, limit?: number): Promise<TxRecord[]>;
 
+  /** Get transaction confirmation status */
+  abstract getTransactionReceipt(txHash: string): Promise<{
+    txHash: string;
+    confirmed: boolean;
+    blockHeight: number;
+    blockTime: number;
+    fee: number;
+  }>;
+
+  /** Preview a send — estimate fees without signing/broadcasting */
+  abstract quoteSendTransaction(params: {
+    from: string;
+    to: string;
+    amount: string;
+  }): Promise<{
+    feasible: boolean;
+    fee: number;
+    feeRate: number;
+    inputCount: number;
+    outputCount: number;
+    totalInput: number;
+    change: number;
+    error?: string;
+  }>;
+
+  /** Get maximum spendable amount for an address */
+  abstract getMaxSpendable(address: string): Promise<{
+    maxSpendable: number;
+    fee: number;
+    utxoCount: number;
+  }>;
+
   /** Cleanup resources */
   destroy(): void {
     this.config = null;

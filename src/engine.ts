@@ -151,20 +151,19 @@ export class WDKEngine {
         if (!to) throw new StateError('Missing "to" parameter');
         const amount = params.amount as string;
         if (!amount) throw new StateError('Missing "amount" parameter');
-        // quoteSendTransaction is BTC-specific — cast to any to call it
-        if (typeof (wallet as any).quoteSendTransaction === 'function') {
-          return (wallet as any).quoteSendTransaction({ from, to, amount });
-        }
-        throw new StateError('quoteSend not supported for this chain');
+        return wallet.quoteSendTransaction({ from, to, amount });
       }
 
       case 'getMaxSpendable': {
         const address = params.address as string;
         if (!address) throw new StateError('Missing "address" parameter');
-        if (typeof (wallet as any).getMaxSpendable === 'function') {
-          return (wallet as any).getMaxSpendable(address);
-        }
-        throw new StateError('getMaxSpendable not supported for this chain');
+        return wallet.getMaxSpendable(address);
+      }
+
+      case 'getReceipt': {
+        const txHash = params.txHash as string;
+        if (!txHash) throw new StateError('Missing "txHash" parameter');
+        return wallet.getTransactionReceipt(txHash);
       }
 
       default:

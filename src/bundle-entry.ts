@@ -176,6 +176,10 @@ const wdk = {
   getMaxSpendable(params: Record<string, unknown>) {
     return engine.dispatch('getMaxSpendable', params);
   },
+
+  getReceipt(params: Record<string, unknown>) {
+    return engine.dispatch('getReceipt', params);
+  },
 };
 
 // BIP-173 bit conversion helper (8-bit to 5-bit)
