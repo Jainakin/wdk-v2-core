@@ -11,6 +11,8 @@
 
 export { WDKEngine } from './engine.js';
 export { BaseWallet } from './wallet.js';
+export { WalletManager } from './wallet-manager.js';
+export { WalletAccount, WalletAccountReadOnly } from './wallet-account.js';
 export { KeyManager } from './keys.js';
 export { EventEmitter, WDKEvents } from './events.js';
 export { ChainRegistry } from './registry.js';
