@@ -63,8 +63,16 @@ export abstract class WalletManager {
    * Production equivalent: WalletManagerBtc.getAccountByPath(path)
    */
   getAccountByPath(path: string, index?: number, addressType?: string): WalletAccount {
+    // Production compat: if path is a suffix like "0'/0/1" (no "m/" prefix),
+    // prepend the BIP derivation prefix based on address type and coin type.
+    let fullPath = path;
+    if (!path.startsWith('m/')) {
+      const purpose = addressType === 'p2pkh' ? 44 : 84;
+      fullPath = `m/${purpose}'/${this.coinType}'/${path}`;
+    }
+
     // Return cached account if it exists and is not disposed
-    const cached = this.accounts.get(path);
+    const cached = this.accounts.get(fullPath);
     if (cached && !cached.isDisposed) {
       return cached;
     }
@@ -74,14 +82,14 @@ export abstract class WalletManager {
       throw new Error('KeyManager not set — call setKeyManager() before getAccount()');
     }
 
-    const keyHandle = this.keyManager.deriveAndTrack(path);
+    const keyHandle = this.keyManager.deriveAndTrack(fullPath);
     const publicKey = native.crypto.getPublicKey(keyHandle, this.curve);
 
     // Extract index from path if not provided: last component of m/purpose'/coin'/account'/change/index
-    const idx = index ?? parseInt(path.split('/').pop() ?? '0', 10);
+    const idx = index ?? parseInt(fullPath.split('/').pop() ?? '0', 10);
 
-    const account = this.createAccount(keyHandle, publicKey, idx, path, addressType);
-    this.accounts.set(path, account);
+    const account = this.createAccount(keyHandle, publicKey, idx, fullPath, addressType);
+    this.accounts.set(fullPath, account);
     return account;
   }
 
